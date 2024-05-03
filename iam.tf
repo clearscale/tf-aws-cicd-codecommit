@@ -6,7 +6,7 @@ resource "aws_iam_role" "trusts" {
   count = length(local.iam_roles) > 0 ? 1 : 1
   name  = local.iam_role
 
-  assume_role_policy = jsonencode({
+  assume_role_policy = length(local.org_ids) > 0 ? jsonencode({
     Version = "2012-10-17",
     Statement = [
       {
@@ -16,15 +16,45 @@ resource "aws_iam_role" "trusts" {
           AWS = (length(local.iam_roles) > 0
             ? [for arn in local.iam_roles
             : arn if arn != null] : ["*"]
-          )
+          ),
+          Service = [
+            "codepipeline.amazonaws.com",
+            "codebuild.amazonaws.com",
+            "codecommit.amazonaws.com"
+          ]
+        },
+        Condition = {
+          StringEquals = {
+            "aws:PrincipalOrgID" = local.org_ids
+          }
+        }
+      }
+    ]
+  }) : jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action    = "sts:AssumeRole",
+        Effect    = "Allow",
+        Principal = {
+          AWS = (length(local.iam_roles) > 0
+            ? [for arn in local.iam_roles
+            : arn if arn != null] : ["*"]
+          ),
+          Service = [
+            "codepipeline.amazonaws.com",
+            "codebuild.amazonaws.com",
+            "codecommit.amazonaws.com"
+          ]
         }
       }
     ]
   })
 }
 
+
 resource "aws_iam_policy" "trusts" {
-  count       = (length(local.s3_buckets) > 0 || length(local.kms_keys) > 0) ? 1 : 0
+  count       = (length(local.s3_buckets) > 0 || length(local.kms_keys) > 0 || length(local.org_ids) > 0) ? 1 : 0
   name        = local.iam_role
   description = "Default '${var.repo.name}' CodeCommit policy for the '${local.project}' project."
   path        = "/"
@@ -41,7 +71,9 @@ resource "aws_iam_policy" "trusts" {
           "codecommit:CancelUploadArchive",
         ],
         Effect   = "Allow",
-        Resource = "arn:aws:codecommit:${var.region}:${local.account_id_repo}:${var.repo.name}"
+        Resource = [
+          "arn:aws:codecommit:${var.region}:${local.account_id_repo}:${var.repo.name}"
+        ]
       }],(length(local.s3_buckets) > 0 ? [{
         Action = [
           "s3:ListBucket",

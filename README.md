@@ -10,18 +10,33 @@ Include the module in your Terraformcode
 
 ```terraform
 module "codecommit" {
-  source    = "https://github.com/clearscale/tf-aws-cicd-codecommit.git"
+  source    = "https://github.com/clearscale/tf-aws-cicd-codecommit.git?ref=v1.0.0"
 
-  accounts = [
-    { name = "shared", provider = "aws", key = "shared"}
-  ]
+  account = {
+    id = "*", name = local.account.name, provider = "aws", key = "current", region = local.region.name
+  }
 
-  prefix   = "ex"
-  client   = "example"
-  project  = "aws"
-  env      = "dev"
-  region   = "us-east-1"
-  name     = "codecommit"
+
+  prefix  = local.context.prefix
+  client  = local.context.client
+  project = local.context.project
+  env     = local.account.name
+  region  = local.region.name
+  name    = "codecommit"
+
+  repo = {
+    name   = "test"
+    create = true
+  }
+
+  #
+  # To be filled in and redeployed after the first successful deployment of the tf-aws-cicd module. These resources do not exist prior to it being deployed.
+  # trusts = [
+  #  "ARN_CODEPIPELINE_S3_BUCKET,
+  #  "ARN_CODEPIPELINE_KMS_KEY", # Must be the key ARN - not an alias.
+  #  "ARN_CODEPIPELINE"
+  # ]
+  #
 }
 ```
 

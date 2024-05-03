@@ -1,6 +1,11 @@
+output "name" {
+  description = "This CodeCommit repository name."
+  value       = var.repo.name
+}
+
 output "role" {
   description = "The service role assigned to the CodeCommit repository."
-  value  = (length(var.trusts) > 0 ? {
+  value  = (length(aws_iam_role.trusts) > 0 ? {
     arn          = aws_iam_role.trusts[0].arn
     created_date = aws_iam_role.trusts[0].create_date
     id           = aws_iam_role.trusts[0].id
@@ -15,7 +20,7 @@ output "role" {
   } : null)
 }
 
-output "iam_role" {
-  description = "The name of the IAM role created for the repository."
-  value       = local.iam_role
+output "org_ids" {
+  description = "The Organization IDs that were passed as trusts."
+  value       = local.org_ids
 }

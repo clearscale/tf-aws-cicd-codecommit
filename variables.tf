@@ -23,12 +23,12 @@ locals {
 
   iam_roles = distinct([        # Grab any IAM roles from the list of ARNs
     for arn in var.trusts : arn
-      if startswith(arn, "arn:aws:iam:") && strcontains(arn, ":role/")
+      if startswith(arn, "arn:aws:iam:") && (strcontains(arn, ":role/") || strcontains(arn, ":root"))
   ])
 
   s3_bucket_names = distinct([ # Grab any entries without ARNs and consider them S3 bucket names
     for arn in var.trusts : "arn:aws:s3:::${arn}"
-      if startswith(arn, "arn:") == false
+      if (startswith(arn, "arn:") == false && can(regex("^o-[a-zA-Z0-9]{10}$", arn)) == false)
   ])
 
   s3_bucket_arns = distinct([  # Grab any S3 buckets from the list
@@ -41,9 +41,13 @@ locals {
       if startswith(arn, "arn:aws:kms:")
   ])
 
+  org_ids = distinct([
+    for id in var.trusts : id
+      if can(regex("^o-[a-zA-Z0-9]{10}$", id))
+  ])
+
   s3_buckets = flatten([local.s3_bucket_names, local.s3_bucket_arns])
-  context    = jsondecode(jsonencode(module.context.accounts))
-  iam_role   = local.context.aws[0].prefix.dot.full.function
+  iam_role   = module.std.names.aws[var.account.name].title
 }
 
 variable "prefix" {
@@ -93,7 +97,7 @@ variable "region" {
 
 variable "name" {
   type        = string
-  description = "(Optional). Code name for this deployment. Used to add additional context to dependency resources."
+  description = "(Optional). Code name for this deployment. Used to add additional context to dependency resources like IAM roles. Repository name should be added to var.repo.name."
   default     = "codecommit"
 }
 
@@ -114,7 +118,7 @@ variable "repo" {
 
     # Only applicable if create == true
     description     = optional(string, "This repository was brought to you by ClearScale.")
-    default_branch  = optional(string, "master")
+    default_branch  = optional(string, "main")
   })
 }
 
