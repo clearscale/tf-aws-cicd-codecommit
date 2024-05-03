@@ -10,7 +10,7 @@ Include the module in your Terraformcode
 
 ```terraform
 module "codecommit" {
-  source    = "github.com/clearscale/tf-aws-cicd-codecommit.git?ref=v1.0.0"
+  source = "github.com/clearscale/tf-aws-cicd-codecommit.git?ref=v1.0.0"
 
   account = {
     id = "*", name = local.account.name, provider = "aws", key = "current", region = local.region.name
